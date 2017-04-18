@@ -1,0 +1,20 @@
+<launch>
+  <arg name="drone_id_namespace" default="drone1" />
+  <arg name="drone_id_int" default="1" />
+  <arg name="my_stack_directory" default="$(env AEROSTACK_STACK)" />
+  <arg name="aruco_observation_topic" default="arucoObservation" />
+
+  <group ns="$(arg drone_id_namespace)">
+    <node name="belief_updater_process"
+          pkg="belief_updater_process"
+          type="belief_updater_process_main"
+          output="screen">
+      <param name="drone_id"
+             value="$(arg drone_id_int)"
+             type="string" />
+      <param name="aruco_observation_topic"
+             value="$(arg aruco_observation_topic)"
+             type="string" />
+    </node>
+  </group>
+</launch>
