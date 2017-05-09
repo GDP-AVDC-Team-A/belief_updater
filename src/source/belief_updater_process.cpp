@@ -1,25 +1,28 @@
 #include "belief_updater_process.h"
 
+void BeliefUpdaterProcess::ownSetUp() {
+  n.param<std::string>("aruco_abservation_topic", aruco_topic, "arucoObservation");
+  n.param<std::string>("pose_topic", pose_topic, "EstimatedPose_droneGMR_wrt_GFF");
+}
+
 void BeliefUpdaterProcess::ownStart() {
   aruco_subscriber = n.subscribe(aruco_topic, 1, &BeliefUpdaterProcess::arucoCallback, this);
+  pose_subscriber = n.subscribe(pose_topic, 1, &BeliefUpdaterProcess::poseCallback, this);
 
   add_client = n.serviceClient<droneMsgsROS::beliefList>("add_beliefs");
   remove_client = n.serviceClient<droneMsgsROS::beliefList>("remove_beliefs");
   query_client = n.serviceClient<droneMsgsROS::executeQuery>("execute_query");
 }
 
-void BeliefUpdaterProcess::ownSetUp() {
-  ros::param::get("~aruco_abservation_topic", aruco_topic);
-  if(aruco_topic.length() == 0) {
-    aruco_topic = "arucoObservation";
-  }
-}
-
 void BeliefUpdaterProcess::ownStop() {
   aruco_subscriber.shutdown();
+  pose_subscriber.shutdown();
 }
 
 void BeliefUpdaterProcess::ownRun() {}
+
+
+
 
 void BeliefUpdaterProcess::arucoCallback(const droneMsgsROS::obsVector& obs_vector) {
   for(auto obs: obs_vector.obs) {
@@ -45,7 +48,7 @@ void BeliefUpdaterProcess::arucoCallback(const droneMsgsROS::obsVector& obs_vect
 
     // Update position
     Point aruco_pt(obs.x, obs.y, obs.z);
-    if(aruco_pt.maxDifference(aruco_positions[obs.id]) > MIN_ARUCO_DISTANCE) {
+    if(aruco_pt.maxDifference(aruco_positions[obs.id]) > ARUCO_MIN_DISTANCE) {
       droneMsgsROS::beliefList::Request req;
       droneMsgsROS::beliefList::Response res;
 
@@ -79,6 +82,27 @@ void BeliefUpdaterProcess::arucoCallback(const droneMsgsROS::obsVector& obs_vect
     }
   }
 }
+
+void BeliefUpdaterProcess::poseCallback(const droneMsgsROS::dronePose& pose) {
+  Point new_pose(pose.x, pose.y, pose.z);
+  if(current_pose.maxDifference(new_pose) > POSE_MIN_DISTANCE) {
+    droneMsgsROS::beliefList::Request req;
+    droneMsgsROS::beliefList::Response res;
+
+    std::stringstream ss;
+    ss << "position(self, (" << pose.x << ", " << pose.y << ", " << pose.z << "))";
+    req.belief_list = ss.str();
+    req.multivalued = false;
+
+    add_client.call(req, res);
+
+    if(res.success) {
+      current_pose = new_pose;
+    }
+  }
+}
+
+
 
 
 
