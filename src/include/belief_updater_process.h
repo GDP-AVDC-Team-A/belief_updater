@@ -43,10 +43,17 @@ private:
   std::map<int, int> aruco_times_seen;
   std::map<int, bool> aruco_added;
   Point current_pose;
+  std::string current_state;
+
+  bool sendState(std::string state);
+  bool sendPose(Point pose);
+  bool sendArucoPose(int id, Point pose);
+  bool sendArucoVisibility(int id, bool visible);
+
 
   const int REQUIRED_MESSAGES = 5;
   const double ARUCO_MIN_DISTANCE = 0.5;
-  const double POSE_MIN_DISTANCE = 0.5;
+  const double POSE_MIN_DISTANCE = 0.1;
 };
 
 

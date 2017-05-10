@@ -12,6 +12,9 @@ void BeliefUpdaterProcess::ownStart() {
   add_client = n.serviceClient<droneMsgsROS::beliefList>("add_beliefs");
   remove_client = n.serviceClient<droneMsgsROS::beliefList>("remove_beliefs");
   query_client = n.serviceClient<droneMsgsROS::executeQuery>("execute_query");
+
+  current_state = "LANDED";
+  sendState(current_state);
 }
 
 void BeliefUpdaterProcess::ownStop() {
@@ -28,15 +31,7 @@ void BeliefUpdaterProcess::arucoCallback(const droneMsgsROS::obsVector& obs_vect
   for(auto obs: obs_vector.obs) {
     // Update visibility
     if(aruco_times_seen[obs.id] == REQUIRED_MESSAGES && !aruco_added[obs.id]) {
-      droneMsgsROS::beliefList::Request req;
-      droneMsgsROS::beliefList::Response res;
-
-      std::stringstream ss;
-      ss << "visible(aruco_" << obs.id << ")";
-      req.belief_list = ss.str();
-      req.multivalued = true;
-
-      add_client.call(req, res);
+      sendArucoVisibility(obs.id, true);
 
       // Later we'll subtract 1 to all, visible or not visible
       aruco_times_seen[obs.id] += 1;
@@ -49,17 +44,9 @@ void BeliefUpdaterProcess::arucoCallback(const droneMsgsROS::obsVector& obs_vect
     // Update position
     Point aruco_pt(obs.x, obs.y, obs.z);
     if(aruco_pt.maxDifference(aruco_positions[obs.id]) > ARUCO_MIN_DISTANCE) {
-      droneMsgsROS::beliefList::Request req;
-      droneMsgsROS::beliefList::Response res;
+      bool success = sendArucoPose(obs.id, aruco_pt);
 
-      std::stringstream ss;
-      ss << "position(aruco_" << obs.id << ", (" << obs.x << ", " << obs.y << ", " << obs.z << "))";
-      req.belief_list = ss.str();
-      req.multivalued = false;
-
-      add_client.call(req, res);
-
-      if(res.success) {
+      if(success) {
         aruco_positions[obs.id] = aruco_pt;
       }
     }
@@ -68,15 +55,7 @@ void BeliefUpdaterProcess::arucoCallback(const droneMsgsROS::obsVector& obs_vect
   // Remove visibility if needed
   for(auto times: aruco_times_seen) {
     if(times.second == 0 && aruco_added[times.first]) {
-      droneMsgsROS::beliefList::Request req;
-      droneMsgsROS::beliefList::Response res;
-
-      std::stringstream ss;
-      ss << "visible(aruco_" << times.first << ")";
-      req.belief_list = ss.str();
-
-      remove_client.call(req, res);
-      aruco_added[times.first] = false;
+      sendArucoVisibility(times.first, false);
     } else if(times.second > 0) {
       aruco_times_seen[times.first] -= 1;
     }
@@ -84,23 +63,104 @@ void BeliefUpdaterProcess::arucoCallback(const droneMsgsROS::obsVector& obs_vect
 }
 
 void BeliefUpdaterProcess::poseCallback(const droneMsgsROS::dronePose& pose) {
+  std::string new_state;
+  if(pose.z < 0.1) {
+    new_state = "LANDED";
+  } else {
+    new_state = "FLYING";
+  }
+
+  if(current_state != new_state) {
+    bool success = sendState(new_state);
+
+    if(success) {
+      current_state = new_state;
+    }
+  }
+
   Point new_pose(pose.x, pose.y, pose.z);
   if(current_pose.maxDifference(new_pose) > POSE_MIN_DISTANCE) {
-    droneMsgsROS::beliefList::Request req;
-    droneMsgsROS::beliefList::Response res;
+    bool success = sendPose(new_pose);
 
-    std::stringstream ss;
-    ss << "position(self, (" << pose.x << ", " << pose.y << ", " << pose.z << "))";
-    req.belief_list = ss.str();
-    req.multivalued = false;
-
-    add_client.call(req, res);
-
-    if(res.success) {
+    if(success) {
       current_pose = new_pose;
     }
   }
 }
+
+
+
+
+bool BeliefUpdaterProcess::sendState(std::string state) {
+  droneMsgsROS::beliefList::Request req;
+  droneMsgsROS::beliefList::Response res;
+
+  std::stringstream ss;
+  ss << "state(self, " << state << ")";
+  req.belief_list = ss.str();
+  req.multivalued = false;
+
+  add_client.call(req, res);
+
+  return res.success;
+}
+
+bool BeliefUpdaterProcess::sendPose(Point pose) {
+  droneMsgsROS::beliefList::Request req;
+  droneMsgsROS::beliefList::Response res;
+
+  std::stringstream ss;
+  ss << "position(self, (" << pose.x << ", " << pose.y << ", " << pose.z << "))";
+  req.belief_list = ss.str();
+  req.multivalued = false;
+
+  add_client.call(req, res);
+
+  return res.success;
+}
+
+bool BeliefUpdaterProcess::sendArucoPose(int id, Point pose) {
+  droneMsgsROS::beliefList::Request req;
+  droneMsgsROS::beliefList::Response res;
+
+  std::stringstream ss;
+  ss << "position(aruco_" << id << ", (" << pose.x << ", " << pose.y << ", " << pose.z << "))";
+  req.belief_list = ss.str();
+  req.multivalued = false;
+
+  add_client.call(req, res);
+
+  return res.success;
+}
+
+bool BeliefUpdaterProcess::sendArucoVisibility(int id, bool visible) {
+  if(visible) {
+    droneMsgsROS::beliefList::Request req;
+    droneMsgsROS::beliefList::Response res;
+
+    std::stringstream ss;
+    ss << "visible(aruco_" << id << ")";
+    req.belief_list = ss.str();
+    req.multivalued = true;
+
+    add_client.call(req, res);
+
+    return res.success;
+  } else {
+    droneMsgsROS::beliefList::Request req;
+    droneMsgsROS::beliefList::Response res;
+
+    std::stringstream ss;
+    ss << "visible(aruco_" << id << ")";
+    req.belief_list = ss.str();
+
+    remove_client.call(req, res);
+
+    return res.success;
+  }
+}
+
+
 
 
 
