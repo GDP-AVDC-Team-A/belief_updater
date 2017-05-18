@@ -3,23 +3,26 @@
 void BeliefUpdaterProcess::ownSetUp() {
   n.param<std::string>("aruco_abservation_topic", aruco_topic, "arucoObservation");
   n.param<std::string>("pose_topic", pose_topic, "EstimatedPose_droneGMR_wrt_GFF");
+  n.param<std::string>("battery_topic", battery_topic, "battery");
 }
 
 void BeliefUpdaterProcess::ownStart() {
   aruco_subscriber = n.subscribe(aruco_topic, 1, &BeliefUpdaterProcess::arucoCallback, this);
   pose_subscriber = n.subscribe(pose_topic, 1, &BeliefUpdaterProcess::poseCallback, this);
+  battery_subscriber = n.subscribe(battery_topic, 1, &BeliefUpdaterProcess::batteryCallback, this);
 
   add_client = n.serviceClient<droneMsgsROS::beliefList>("add_beliefs");
   remove_client = n.serviceClient<droneMsgsROS::beliefList>("remove_beliefs");
   query_client = n.serviceClient<droneMsgsROS::executeQuery>("execute_query");
 
-  current_state = "LANDED";
-  sendState(current_state);
+  current_flight_state = "LANDED";
+  sendFlightState(current_flight_state);
 }
 
 void BeliefUpdaterProcess::ownStop() {
   aruco_subscriber.shutdown();
   pose_subscriber.shutdown();
+  battery_subscriber.shutdown();
 }
 
 void BeliefUpdaterProcess::ownRun() {}
@@ -63,18 +66,18 @@ void BeliefUpdaterProcess::arucoCallback(const droneMsgsROS::obsVector& obs_vect
 }
 
 void BeliefUpdaterProcess::poseCallback(const droneMsgsROS::dronePose& pose) {
-  std::string new_state;
+  std::string new_flight_state;
   if(pose.z < 0.1) {
-    new_state = "LANDED";
+    new_flight_state = "LANDED";
   } else {
-    new_state = "FLYING";
+    new_flight_state = "FLYING";
   }
 
-  if(current_state != new_state) {
-    bool success = sendState(new_state);
+  if(current_flight_state != new_flight_state) {
+    bool success = sendFlightState(new_flight_state);
 
     if(success) {
-      current_state = new_state;
+      current_flight_state = new_flight_state;
     }
   }
 
@@ -88,15 +91,34 @@ void BeliefUpdaterProcess::poseCallback(const droneMsgsROS::dronePose& pose) {
   }
 }
 
+void BeliefUpdaterProcess::batteryCallback(const droneMsgsROS::battery& battery) {
+  std::string new_battery_level;
+  if(battery.batteryPercent < BATTERY_LOW_THRESHOLD) {
+    new_battery_level = "LOW";
+  } else if(battery.batteryPercent < BATTERY_MEDIUM_THRESHOLD) {
+    new_battery_level = "MEDIUM";
+  } else {
+    new_battery_level = "HIGH";
+  }
+
+  if(new_battery_level != current_battery_level) {
+    bool success = sendBatteryLevel(new_battery_level);
+
+    if(success) {
+      current_battery_level = new_battery_level;
+    }
+  }
+}
 
 
 
-bool BeliefUpdaterProcess::sendState(std::string state) {
+
+bool BeliefUpdaterProcess::sendFlightState(std::string flight_state) {
   droneMsgsROS::beliefList::Request req;
   droneMsgsROS::beliefList::Response res;
 
   std::stringstream ss;
-  ss << "state(self, " << state << ")";
+  ss << "flight_state(self, " << flight_state << ")";
   req.belief_list = ss.str();
   req.multivalued = false;
 
@@ -158,6 +180,20 @@ bool BeliefUpdaterProcess::sendArucoVisibility(int id, bool visible) {
 
     return res.success;
   }
+}
+
+bool BeliefUpdaterProcess::sendBatteryLevel(std::string level) {
+  droneMsgsROS::beliefList::Request req;
+  droneMsgsROS::beliefList::Response res;
+
+  std::stringstream ss;
+  ss << "battery_level(self, " << level << ")";
+  req.belief_list = ss.str();
+  req.multivalued = false;
+
+  add_client.call(req, res);
+
+  return res.success;
 }
 
 
