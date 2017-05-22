@@ -23,6 +23,7 @@ private:
     Point(double x, double y, double z);
     Point();
     double maxDifference(Point p);
+    void roundTo(double value);
   };
 
   ros::NodeHandle n;

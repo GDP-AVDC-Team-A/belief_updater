@@ -14,9 +14,6 @@ void BeliefUpdaterProcess::ownStart() {
   add_client = n.serviceClient<droneMsgsROS::beliefList>("add_beliefs");
   remove_client = n.serviceClient<droneMsgsROS::beliefList>("remove_beliefs");
   query_client = n.serviceClient<droneMsgsROS::executeQuery>("execute_query");
-
-  current_flight_state = "LANDED";
-  sendFlightState(current_flight_state);
 }
 
 void BeliefUpdaterProcess::ownStop() {
@@ -46,7 +43,8 @@ void BeliefUpdaterProcess::arucoCallback(const droneMsgsROS::obsVector& obs_vect
 
     // Update position
     Point aruco_pt(obs.x, obs.y, obs.z);
-    if(aruco_pt.maxDifference(aruco_positions[obs.id]) > ARUCO_MIN_DISTANCE) {
+    aruco_pt.roundTo(ARUCO_MIN_DISTANCE);
+    if(aruco_pt.maxDifference(aruco_positions[obs.id]) > 0) {
       bool success = sendArucoPose(obs.id, aruco_pt);
 
       if(success) {
@@ -82,7 +80,8 @@ void BeliefUpdaterProcess::poseCallback(const droneMsgsROS::dronePose& pose) {
   }
 
   Point new_pose(pose.x, pose.y, pose.z);
-  if(current_pose.maxDifference(new_pose) > POSE_MIN_DISTANCE) {
+  new_pose.roundTo(POSE_MIN_DISTANCE);
+  if(current_pose.maxDifference(new_pose) > 0) {
     bool success = sendPose(new_pose);
 
     if(success) {
@@ -227,4 +226,10 @@ double BeliefUpdaterProcess::Point::maxDifference(BeliefUpdaterProcess::Point p)
   }
 
   return max;
+}
+
+void BeliefUpdaterProcess::Point::roundTo(double value) {
+  x = std::round(x/value)*value;
+  y = std::round(y/value)*value;
+  z = std::round(z/value)*value;
 }
