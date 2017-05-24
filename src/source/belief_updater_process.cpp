@@ -57,6 +57,7 @@ void BeliefUpdaterProcess::arucoCallback(const droneMsgsROS::obsVector& obs_vect
   for(auto times: aruco_times_seen) {
     if(times.second == 0 && aruco_added[times.first]) {
       sendArucoVisibility(times.first, false);
+      aruco_added[times.first] = false;
     } else if(times.second > 0) {
       aruco_times_seen[times.first] -= 1;
     }
