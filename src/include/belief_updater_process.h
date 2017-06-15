@@ -4,8 +4,9 @@
 #include "drone_process.h"
 #include <string.h>
 #include "droneMsgsROS/Observation3D.h"
-#include "droneMsgsROS/executeQuery.h"
-#include "droneMsgsROS/beliefList.h"
+#include "droneMsgsROS/ConsultBelief.h"
+#include "droneMsgsROS/AddBelief.h"
+#include "droneMsgsROS/RemoveBelief.h"
 #include "droneMsgsROS/obsVector.h"
 #include "droneMsgsROS/dronePose.h"
 #include "droneMsgsROS/battery.h"
