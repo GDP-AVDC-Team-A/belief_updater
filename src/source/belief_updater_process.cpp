@@ -11,9 +11,9 @@ void BeliefUpdaterProcess::ownStart() {
   pose_subscriber = n.subscribe(pose_topic, 1, &BeliefUpdaterProcess::poseCallback, this);
   battery_subscriber = n.subscribe(battery_topic, 1, &BeliefUpdaterProcess::batteryCallback, this);
 
-  add_client = n.serviceClient<droneMsgsROS::beliefList>("add_beliefs");
-  remove_client = n.serviceClient<droneMsgsROS::beliefList>("remove_beliefs");
-  query_client = n.serviceClient<droneMsgsROS::executeQuery>("execute_query");
+  add_client = n.serviceClient<droneMsgsROS::AddBelief>("add_belief");
+  remove_client = n.serviceClient<droneMsgsROS::RemoveBelief>("remove_belief");
+  query_client = n.serviceClient<droneMsgsROS::ConsultBelief>("consult_belief");
 }
 
 void BeliefUpdaterProcess::ownStop() {
@@ -114,12 +114,12 @@ void BeliefUpdaterProcess::batteryCallback(const droneMsgsROS::battery& battery)
 
 
 bool BeliefUpdaterProcess::sendFlightState(std::string flight_state) {
-  droneMsgsROS::beliefList::Request req;
-  droneMsgsROS::beliefList::Response res;
+  droneMsgsROS::AddBelief::Request req;
+  droneMsgsROS::AddBelief::Response res;
 
   std::stringstream ss;
   ss << "flight_state(self, " << flight_state << ")";
-  req.belief_list = ss.str();
+  req.belief_expression = ss.str();
   req.multivalued = false;
 
   add_client.call(req, res);
@@ -128,12 +128,12 @@ bool BeliefUpdaterProcess::sendFlightState(std::string flight_state) {
 }
 
 bool BeliefUpdaterProcess::sendPose(Point pose) {
-  droneMsgsROS::beliefList::Request req;
-  droneMsgsROS::beliefList::Response res;
+  droneMsgsROS::AddBelief::Request req;
+  droneMsgsROS::AddBelief::Response res;
 
   std::stringstream ss;
   ss << "position(self, (" << pose.x << ", " << pose.y << ", " << pose.z << "))";
-  req.belief_list = ss.str();
+  req.belief_expression = ss.str();
   req.multivalued = false;
 
   add_client.call(req, res);
@@ -142,12 +142,12 @@ bool BeliefUpdaterProcess::sendPose(Point pose) {
 }
 
 bool BeliefUpdaterProcess::sendArucoPose(int id, Point pose) {
-  droneMsgsROS::beliefList::Request req;
-  droneMsgsROS::beliefList::Response res;
+  droneMsgsROS::AddBelief::Request req;
+  droneMsgsROS::AddBelief::Response res;
 
   std::stringstream ss;
   ss << "position(aruco_" << id << ", (" << pose.x << ", " << pose.y << ", " << pose.z << "))";
-  req.belief_list = ss.str();
+  req.belief_expression = ss.str();
   req.multivalued = false;
 
   add_client.call(req, res);
@@ -157,24 +157,24 @@ bool BeliefUpdaterProcess::sendArucoPose(int id, Point pose) {
 
 bool BeliefUpdaterProcess::sendArucoVisibility(int id, bool visible) {
   if(visible) {
-    droneMsgsROS::beliefList::Request req;
-    droneMsgsROS::beliefList::Response res;
+    droneMsgsROS::AddBelief::Request req;
+    droneMsgsROS::AddBelief::Response res;
 
     std::stringstream ss;
     ss << "visible(aruco_" << id << ")";
-    req.belief_list = ss.str();
+    req.belief_expression = ss.str();
     req.multivalued = true;
 
     add_client.call(req, res);
 
     return res.success;
   } else {
-    droneMsgsROS::beliefList::Request req;
-    droneMsgsROS::beliefList::Response res;
+    droneMsgsROS::RemoveBelief::Request req;
+    droneMsgsROS::RemoveBelief::Response res;
 
     std::stringstream ss;
     ss << "visible(aruco_" << id << ")";
-    req.belief_list = ss.str();
+    req.belief_expression = ss.str();
 
     remove_client.call(req, res);
 
@@ -183,12 +183,12 @@ bool BeliefUpdaterProcess::sendArucoVisibility(int id, bool visible) {
 }
 
 bool BeliefUpdaterProcess::sendBatteryLevel(std::string level) {
-  droneMsgsROS::beliefList::Request req;
-  droneMsgsROS::beliefList::Response res;
+  droneMsgsROS::AddBelief::Request req;
+  droneMsgsROS::AddBelief::Response res;
 
   std::stringstream ss;
   ss << "battery_level(self, " << level << ")";
-  req.belief_list = ss.str();
+  req.belief_expression = ss.str();
   req.multivalued = false;
 
   add_client.call(req, res);
