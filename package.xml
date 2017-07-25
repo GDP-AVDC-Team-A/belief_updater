@@ -4,7 +4,8 @@
   <version>0.0.0</version>
   <description>The belief_updater_process package</description>
 
-  <maintainer email="gdefermin@gmail.com">Guillermo De Fermin</maintainer>
+  <author email="gdefermin@gmail.com">Guillermo De Fermin</author>
+  <maintainer email="alberto.camporredondo@gmail.com">Alberto Camporredondo</maintainer>
 
   <license>GPLv3</license>
 
