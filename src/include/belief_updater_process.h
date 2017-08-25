@@ -31,6 +31,7 @@
 #include "droneMsgsROS/obsVector.h"
 #include "droneMsgsROS/dronePose.h"
 #include "droneMsgsROS/battery.h"
+#include <droneMsgsROS/QRInterpretation.h>
 
 class BeliefUpdaterProcess: public DroneProcess {
 public:
@@ -53,6 +54,7 @@ private:
   ros::Subscriber aruco_subscriber;
   ros::Subscriber pose_subscriber;
   ros::Subscriber battery_subscriber;
+  ros::Subscriber qr_interpretation_subscriber;
 
   ros::ServiceClient add_client;
   ros::ServiceClient remove_client;
@@ -61,10 +63,14 @@ private:
   std::string aruco_topic;
   std::string pose_topic;
   std::string battery_topic;
+  std::string qr_interpretation_topic;
+
+  std::string previous_interpretation;
 
   void arucoCallback(const droneMsgsROS::obsVector& obs);
   void poseCallback(const droneMsgsROS::dronePose& pose);
   void batteryCallback(const droneMsgsROS::battery& battery);
+  void qrInterpretationCallback(const droneMsgsROS::QRInterpretation& obs_vector);
 
   std::map<int, Point> aruco_positions;
   std::map<int, int> aruco_times_seen;
@@ -78,7 +84,7 @@ private:
   bool sendArucoPose(int id, Point pose);
   bool sendArucoVisibility(int id, bool visible);
   bool sendBatteryLevel(std::string level);
-
+  bool sendQRInterpretation(std::string message, bool visible);
 
 
   const int REQUIRED_MESSAGES = 5;

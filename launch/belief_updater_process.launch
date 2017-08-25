@@ -4,7 +4,7 @@
   <arg name="my_stack_directory" default="$(env AEROSTACK_STACK)" />
   <arg name="aruco_observation_topic" default="arucoObservation" />
   <arg name="pose_topic" default="EstimatedPose_droneGMR_wrt_GFF" />
-
+  <arg name="qr_interpretation_topic" default="qr_interpretation" />
   <group ns="$(arg drone_id_namespace)">
     <node name="belief_updater_process"
           pkg="belief_updater_process"
@@ -18,6 +18,9 @@
              type="string" />
       <param name="pose_topic"
              value="$(arg pose_topic)"
+             type="string" />
+      <param name="qr_interpretation_topic"
+             value="$(arg qr_interpretation_topic)"
              type="string" />
     </node>
   </group>

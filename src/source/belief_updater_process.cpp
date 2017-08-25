@@ -4,12 +4,16 @@ void BeliefUpdaterProcess::ownSetUp() {
   n.param<std::string>("aruco_abservation_topic", aruco_topic, "arucoObservation");
   n.param<std::string>("pose_topic", pose_topic, "EstimatedPose_droneGMR_wrt_GFF");
   n.param<std::string>("battery_topic", battery_topic, "battery");
+  n.param<std::string>("qr_interpretation_topic", qr_interpretation_topic, "qr_interpretation");
 }
 
 void BeliefUpdaterProcess::ownStart() {
   aruco_subscriber = n.subscribe(aruco_topic, 1, &BeliefUpdaterProcess::arucoCallback, this);
   pose_subscriber = n.subscribe(pose_topic, 1, &BeliefUpdaterProcess::poseCallback, this);
   battery_subscriber = n.subscribe(battery_topic, 1, &BeliefUpdaterProcess::batteryCallback, this);
+  qr_interpretation_subscriber = n.subscribe(qr_interpretation_topic, 1, &BeliefUpdaterProcess::qrInterpretationCallback,this);
+
+  previous_interpretation = "";
 
   add_client = n.serviceClient<droneMsgsROS::AddBelief>("add_belief");
   remove_client = n.serviceClient<droneMsgsROS::RemoveBelief>("remove_belief");
@@ -60,6 +64,27 @@ void BeliefUpdaterProcess::arucoCallback(const droneMsgsROS::obsVector& obs_vect
       aruco_added[times.first] = false;
     } else if(times.second > 0) {
       aruco_times_seen[times.first] -= 1;
+    }
+  }
+}
+
+
+void BeliefUpdaterProcess::qrInterpretationCallback(const droneMsgsROS::QRInterpretation& qr) {
+  std::cout << "entered qr callback" << std::endl;
+  if(qr.message != ""){
+    if(previous_interpretation != qr.message) {
+      if(previous_interpretation!="")
+         sendQRInterpretation(previous_interpretation, false);
+      sendQRInterpretation(qr.message, true);
+      previous_interpretation = qr.message;
+    }
+  }
+  else
+  {
+    if(previous_interpretation!="")
+    {
+      sendQRInterpretation(previous_interpretation, false);
+      previous_interpretation = "";
     }
   }
 }
@@ -196,7 +221,32 @@ bool BeliefUpdaterProcess::sendBatteryLevel(std::string level) {
   return res.success;
 }
 
+bool BeliefUpdaterProcess::sendQRInterpretation(std::string message, bool visible) {
+  if(visible) {
+    droneMsgsROS::AddBelief::Request req;
+    droneMsgsROS::AddBelief::Response res;
 
+    std::stringstream ss;
+    ss << "object(qr, "  << message <<")";
+    req.belief_expression = ss.str();
+    req.multivalued = true;
+    std::cout<< "calling service with: " << ss.str()<< std::endl;
+    add_client.call(req, res);
+
+    return res.success;
+  } else {
+    droneMsgsROS::RemoveBelief::Request req;
+    droneMsgsROS::RemoveBelief::Response res;
+
+    std::stringstream ss;
+    ss << "object(qr, "<< previous_interpretation << ")";
+    req.belief_expression = ss.str();
+
+    remove_client.call(req, res);
+
+    return res.success;
+  }
+}
 
 
 
