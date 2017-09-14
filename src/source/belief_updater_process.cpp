@@ -1,10 +1,11 @@
 #include "belief_updater_process.h"
 
 void BeliefUpdaterProcess::ownSetUp() {
-  n.param<std::string>("aruco_abservation_topic", aruco_topic, "arucoObservation");
-  n.param<std::string>("pose_topic", pose_topic, "EstimatedPose_droneGMR_wrt_GFF");
-  n.param<std::string>("battery_topic", battery_topic, "battery");
-  n.param<std::string>("qr_interpretation_topic", qr_interpretation_topic, "qr_interpretation");
+  ros::NodeHandle private_nh("~");
+  private_nh.param<std::string>("aruco_abservation_topic", aruco_topic, "arucoObservation");
+  private_nh.param<std::string>("pose_topic", pose_topic, "EstimatedPose_droneGMR_wrt_GFF");
+  private_nh.param<std::string>("battery_topic", battery_topic, "battery");
+  private_nh.param<std::string>("qr_interpretation_topic", qr_interpretation_topic, "qr_interpretation");
 }
 
 void BeliefUpdaterProcess::ownStart() {

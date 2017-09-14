@@ -10,16 +10,16 @@
           pkg="belief_updater_process"
           type="belief_updater_process_main"
           output="screen">
-      <param name="drone_id"
+      <param name="~drone_id"
              value="$(arg drone_id_int)"
              type="string" />
-      <param name="aruco_observation_topic"
+      <param name="~aruco_observation_topic"
              value="$(arg aruco_observation_topic)"
              type="string" />
-      <param name="pose_topic"
+      <param name="~pose_topic"
              value="$(arg pose_topic)"
              type="string" />
-      <param name="qr_interpretation_topic"
+      <param name="~qr_interpretation_topic"
              value="$(arg qr_interpretation_topic)"
              type="string" />
     </node>
