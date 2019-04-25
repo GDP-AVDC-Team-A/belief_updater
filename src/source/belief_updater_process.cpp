@@ -16,9 +16,9 @@ void BeliefUpdaterProcess::ownStart() {
 
   previous_interpretation = "";
 
-  add_client = n.serviceClient<droneMsgsROS::AddBelief>("add_belief");
-  remove_client = n.serviceClient<droneMsgsROS::RemoveBelief>("remove_belief");
-  query_client = n.serviceClient<droneMsgsROS::ConsultBelief>("consult_belief");
+  add_client = n.serviceClient<aerostack_msgs::AddBelief>("add_belief");
+  remove_client = n.serviceClient<aerostack_msgs::RemoveBelief>("remove_belief");
+  query_client = n.serviceClient<aerostack_msgs::ConsultBelief>("consult_belief");
 }
 
 void BeliefUpdaterProcess::ownStop() {
@@ -140,8 +140,8 @@ void BeliefUpdaterProcess::batteryCallback(const droneMsgsROS::battery& battery)
 
 
 bool BeliefUpdaterProcess::sendFlightState(std::string flight_state) {
-  droneMsgsROS::AddBelief::Request req;
-  droneMsgsROS::AddBelief::Response res;
+  aerostack_msgs::AddBelief::Request req;
+  aerostack_msgs::AddBelief::Response res;
 
   std::stringstream ss;
   ss << "flight_state(self, " << flight_state << ")";
@@ -154,8 +154,8 @@ bool BeliefUpdaterProcess::sendFlightState(std::string flight_state) {
 }
 
 bool BeliefUpdaterProcess::sendPose(Point pose) {
-  droneMsgsROS::AddBelief::Request req;
-  droneMsgsROS::AddBelief::Response res;
+  aerostack_msgs::AddBelief::Request req;
+  aerostack_msgs::AddBelief::Response res;
 
   std::stringstream ss;
   ss << "position(self, (" << pose.x << ", " << pose.y << ", " << pose.z << "))";
@@ -168,8 +168,8 @@ bool BeliefUpdaterProcess::sendPose(Point pose) {
 }
 
 bool BeliefUpdaterProcess::sendArucoPose(int id, Point pose) {
-  droneMsgsROS::AddBelief::Request req;
-  droneMsgsROS::AddBelief::Response res;
+  aerostack_msgs::AddBelief::Request req;
+  aerostack_msgs::AddBelief::Response res;
 
   std::stringstream ss;
   ss << "position(aruco_" << id << ", (" << pose.x << ", " << pose.y << ", " << pose.z << "))";
@@ -183,8 +183,8 @@ bool BeliefUpdaterProcess::sendArucoPose(int id, Point pose) {
 
 bool BeliefUpdaterProcess::sendArucoVisibility(int id, bool visible) {
   if(visible) {
-    droneMsgsROS::AddBelief::Request req;
-    droneMsgsROS::AddBelief::Response res;
+    aerostack_msgs::AddBelief::Request req;
+    aerostack_msgs::AddBelief::Response res;
 
     std::stringstream ss;
     ss << "visible(aruco_" << id << ")";
@@ -195,8 +195,8 @@ bool BeliefUpdaterProcess::sendArucoVisibility(int id, bool visible) {
 
     return res.success;
   } else {
-    droneMsgsROS::RemoveBelief::Request req;
-    droneMsgsROS::RemoveBelief::Response res;
+    aerostack_msgs::RemoveBelief::Request req;
+    aerostack_msgs::RemoveBelief::Response res;
 
     std::stringstream ss;
     ss << "visible(aruco_" << id << ")";
@@ -209,8 +209,8 @@ bool BeliefUpdaterProcess::sendArucoVisibility(int id, bool visible) {
 }
 
 bool BeliefUpdaterProcess::sendBatteryLevel(std::string level) {
-  droneMsgsROS::AddBelief::Request req;
-  droneMsgsROS::AddBelief::Response res;
+  aerostack_msgs::AddBelief::Request req;
+  aerostack_msgs::AddBelief::Response res;
 
   std::stringstream ss;
   ss << "battery_level(self, " << level << ")";
@@ -224,8 +224,8 @@ bool BeliefUpdaterProcess::sendBatteryLevel(std::string level) {
 
 bool BeliefUpdaterProcess::sendQRInterpretation(std::string message, bool visible) {
   if(visible) {
-    droneMsgsROS::AddBelief::Request req;
-    droneMsgsROS::AddBelief::Response res;
+    aerostack_msgs::AddBelief::Request req;
+    aerostack_msgs::AddBelief::Response res;
 
     std::stringstream ss;
     ss << "object(qr, "  << message <<")";
@@ -236,8 +236,8 @@ bool BeliefUpdaterProcess::sendQRInterpretation(std::string message, bool visibl
 
     return res.success;
   } else {
-    droneMsgsROS::RemoveBelief::Request req;
-    droneMsgsROS::RemoveBelief::Response res;
+    aerostack_msgs::RemoveBelief::Request req;
+    aerostack_msgs::RemoveBelief::Response res;
 
     std::stringstream ss;
     ss << "object(qr, "<< previous_interpretation << ")";

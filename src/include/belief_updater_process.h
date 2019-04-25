@@ -25,9 +25,9 @@
 #include "drone_process.h"
 #include <string.h>
 #include "droneMsgsROS/Observation3D.h"
-#include "droneMsgsROS/ConsultBelief.h"
-#include "droneMsgsROS/AddBelief.h"
-#include "droneMsgsROS/RemoveBelief.h"
+#include "aerostack_msgs/ConsultBelief.h"
+#include "aerostack_msgs/AddBelief.h"
+#include "aerostack_msgs/RemoveBelief.h"
 #include "droneMsgsROS/obsVector.h"
 #include "droneMsgsROS/dronePose.h"
 #include "droneMsgsROS/battery.h"
