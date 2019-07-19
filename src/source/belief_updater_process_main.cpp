@@ -8,5 +8,10 @@ int main(int argc, char **argv) {
   belief_updater.setUp();
   belief_updater.start();
 
-  ros::spin();
+  ros::Rate r(10); // 10 hz
+  while (ros::ok())
+  {
+   ros::spinOnce();
+   r.sleep();
+  }
 }
