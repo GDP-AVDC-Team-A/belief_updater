@@ -16,15 +16,47 @@ void BeliefUpdaterProcess::ownStart() {
 
   previous_interpretation = "";
 
+
   add_client = n.serviceClient<aerostack_msgs::AddBelief>("add_belief");
   remove_client = n.serviceClient<aerostack_msgs::RemoveBelief>("remove_belief");
-  query_client = n.serviceClient<aerostack_msgs::ConsultBelief>("consult_belief");
+  query_client = n.serviceClient<aerostack_msgs::QueryBelief>("query_belief");
+  generate_id_client = n.serviceClient<droneMsgsROS::GenerateID>("belief_manager_process/generate_id");
+
+//It's needed to wait at least 2 seconds because if you don't wait it is possible that the clients are not connected.
+  ros::Duration(2).sleep();
+
+//Getting the new id for the drone
+  droneMsgsROS::GenerateID::Request req;
+  droneMsgsROS::GenerateID::Response res;
+  generate_id_client.call(req, res);
+  if (res.ack)
+  {
+    my_id = res.id;
+
+  }
+ 
+
+  aerostack_msgs::QueryBelief srv;
+  srv.request.query = "object(?x,drone), name(?x,self)"; 
+  query_client.call(srv);
+ 
+  aerostack_msgs::QueryBelief::Response response= srv.response;
+  if(response.success==false){
+  	aerostack_msgs::AddBelief srv2;
+  	std::stringstream s;
+  	s << "object(" << my_id << ", drone), name(" << my_id << ",self)";//llamar a generate id
+ 	srv2.request.belief_expression = s.str();
+ 	srv2.request.multivalued = false;
+ 	add_client.call(srv2);
+
+ }
 }
 
 void BeliefUpdaterProcess::ownStop() {
   aruco_subscriber.shutdown();
   pose_subscriber.shutdown();
   battery_subscriber.shutdown();
+
 }
 
 void BeliefUpdaterProcess::ownRun() {}
@@ -144,7 +176,7 @@ bool BeliefUpdaterProcess::sendFlightState(std::string flight_state) {
   aerostack_msgs::AddBelief::Response res;
 
   std::stringstream ss;
-  ss << "flight_state(self, " << flight_state << ")";
+  ss << "flight_state(" << my_id << ", " << flight_state << ")";
   req.belief_expression = ss.str();
   req.multivalued = false;
 
@@ -158,7 +190,7 @@ bool BeliefUpdaterProcess::sendPose(Point pose) {
   aerostack_msgs::AddBelief::Response res;
 
   std::stringstream ss;
-  ss << "position(self, (" << pose.x << ", " << pose.y << ", " << pose.z << "))";
+  ss << "position(" << my_id << ", (" << pose.x << ", " << pose.y << ", " << pose.z << "))";
   req.belief_expression = ss.str();
   req.multivalued = false;
 
@@ -213,7 +245,7 @@ bool BeliefUpdaterProcess::sendBatteryLevel(std::string level) {
   aerostack_msgs::AddBelief::Response res;
 
   std::stringstream ss;
-  ss << "battery_level(self, " << level << ")";
+  ss << "battery_level(" << my_id << ", " << level << ")";
   req.belief_expression = ss.str();
   req.multivalued = false;
 

@@ -25,13 +25,14 @@
 #include "drone_process.h"
 #include <string.h>
 #include "droneMsgsROS/Observation3D.h"
-#include "aerostack_msgs/ConsultBelief.h"
+#include "aerostack_msgs/QueryBelief.h"
 #include "aerostack_msgs/AddBelief.h"
 #include "aerostack_msgs/RemoveBelief.h"
 #include "droneMsgsROS/obsVector.h"
 #include "droneMsgsROS/dronePose.h"
 #include "droneMsgsROS/battery.h"
 #include <droneMsgsROS/QRInterpretation.h>
+#include "droneMsgsROS/GenerateID.h"
 
 class BeliefUpdaterProcess: public DroneProcess {
 public:
@@ -59,6 +60,7 @@ private:
   ros::ServiceClient add_client;
   ros::ServiceClient remove_client;
   ros::ServiceClient query_client;
+  ros::ServiceClient generate_id_client;
 
   std::string aruco_topic;
   std::string pose_topic;
@@ -92,6 +94,9 @@ private:
   const double POSE_MIN_DISTANCE = 0.1;
   const double BATTERY_LOW_THRESHOLD = 25;
   const double BATTERY_MEDIUM_THRESHOLD = 75;
+
+  int my_id;
+ 
 };
 
 
