@@ -14,6 +14,7 @@
   <build_depend>roscpp</build_depend>
   <build_depend>droneMsgsROS</build_depend>
   <build_depend>drone_process</build_depend>
+  <build_depend>aerostack_msgs</build_depend>
 
   <run_depend>drone_process</run_depend>
   <run_depend>droneMsgsROS</run_depend>
