@@ -3,8 +3,10 @@
   <arg name="drone_id_int" default="1" />
   <arg name="my_stack_directory" default="$(env AEROSTACK_STACK)" />
   <arg name="aruco_observation_topic" default="arucoObservation" />
-  <arg name="pose_topic" default="EstimatedPose_droneGMR_wrt_GFF" />
+  <arg name="pose_topic" default="self_localization/pose" />
+  <arg name="battery_topic" default="battery" />
   <arg name="qr_interpretation_topic" default="qr_interpretation" />
+  <arg name="message_from_robot"  default="message_from_robot" />
   <group ns="$(arg drone_id_namespace)">
     <node name="belief_updater_process"
           pkg="belief_updater_process"
@@ -22,6 +24,15 @@
       <param name="~qr_interpretation_topic"
              value="$(arg qr_interpretation_topic)"
              type="string" />
+      <param name="~battery_topic"
+             value="$(arg battery_topic)"
+             type="string" />
+      <param name="~message_from_robot"     
+             value="$(arg message_from_robot)"    
+             type="str" />
+      <param name="~drone_id_namespace"     
+             value="$(arg drone_id_namespace)"    
+             type="str" />
     </node>
   </group>
 </launch>

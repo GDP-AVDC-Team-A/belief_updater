@@ -33,6 +33,12 @@
 #include "droneMsgsROS/battery.h"
 #include <droneMsgsROS/QRInterpretation.h>
 #include "droneMsgsROS/GenerateID.h"
+#include <aerostack_msgs/SocialCommunicationStatement.h>
+#include <yaml-cpp/yaml.h>
+#include <vector>
+#include "geometry_msgs/PoseStamped.h"
+
+
 
 class BeliefUpdaterProcess: public DroneProcess {
 public:
@@ -56,23 +62,28 @@ private:
   ros::Subscriber pose_subscriber;
   ros::Subscriber battery_subscriber;
   ros::Subscriber qr_interpretation_subscriber;
+  ros::Subscriber message_from_robot_sub;
+
 
   ros::ServiceClient add_client;
   ros::ServiceClient remove_client;
   ros::ServiceClient query_client;
   ros::ServiceClient generate_id_client;
 
+  std::string drone_id_namespace;
   std::string aruco_topic;
   std::string pose_topic;
   std::string battery_topic;
   std::string qr_interpretation_topic;
+  std::string message_from_robot;
 
   std::string previous_interpretation;
 
   void arucoCallback(const droneMsgsROS::obsVector& obs);
-  void poseCallback(const droneMsgsROS::dronePose& pose);
+  void poseCallback(const geometry_msgs::PoseStamped& pose);
   void batteryCallback(const droneMsgsROS::battery& battery);
   void qrInterpretationCallback(const droneMsgsROS::QRInterpretation& obs_vector);
+  void message_from_robotCallback(const aerostack_msgs::SocialCommunicationStatement &message);
 
   std::map<int, Point> aruco_positions;
   std::map<int, int> aruco_times_seen;
@@ -87,6 +98,8 @@ private:
   bool sendArucoVisibility(int id, bool visible);
   bool sendBatteryLevel(std::string level);
   bool sendQRInterpretation(std::string message, bool visible);
+  std::vector<std::string> getpairs(std::string subs);
+  std::vector<std::string> getsubs(std::vector<std::string> pairs);
 
 
   const int REQUIRED_MESSAGES = 5;

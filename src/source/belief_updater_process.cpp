@@ -3,9 +3,11 @@
 void BeliefUpdaterProcess::ownSetUp() {
   ros::NodeHandle private_nh("~");
   private_nh.param<std::string>("aruco_abservation_topic", aruco_topic, "arucoObservation");
-  private_nh.param<std::string>("pose_topic", pose_topic, "EstimatedPose_droneGMR_wrt_GFF");
+  private_nh.param<std::string>("pose_topic", pose_topic, "self_localization/pose");
   private_nh.param<std::string>("battery_topic", battery_topic, "battery");
   private_nh.param<std::string>("qr_interpretation_topic", qr_interpretation_topic, "qr_interpretation");
+  private_nh.param<std::string>("message_from_robot", message_from_robot,"message_from_robot");
+  private_nh.param<std::string>("drone_id_namespace", drone_id_namespace, "drone1");
 }
 
 void BeliefUpdaterProcess::ownStart() {
@@ -13,6 +15,8 @@ void BeliefUpdaterProcess::ownStart() {
   pose_subscriber = n.subscribe(pose_topic, 1, &BeliefUpdaterProcess::poseCallback, this);
   battery_subscriber = n.subscribe(battery_topic, 1, &BeliefUpdaterProcess::batteryCallback, this);
   qr_interpretation_subscriber = n.subscribe(qr_interpretation_topic, 1, &BeliefUpdaterProcess::qrInterpretationCallback,this);
+  message_from_robot_sub =n.subscribe('/' + message_from_robot, 1,
+                            &BeliefUpdaterProcess::message_from_robotCallback, this);
 
   previous_interpretation = "";
 
@@ -62,7 +66,93 @@ void BeliefUpdaterProcess::ownStop() {
 void BeliefUpdaterProcess::ownRun() {}
 
 
+std::vector<std::string> BeliefUpdaterProcess::getpairs(std::string subs){
+std::vector<std::string> recortes;
+   int ini=0;
+   int pos=0;
+    while((pos=subs.find("\n",pos))!=std::string::npos){
+      recortes.push_back(subs.substr(ini,pos-ini));
+      pos=pos+1;
+      ini=pos;
 
+  }
+//now we are going to delete spaces
+  std::vector<std::string> res;
+  for(int j=0;j<recortes.size();j++){
+      std::string aux="";
+      for(int  i = 0; recortes[j][i] != 0;i++){
+              if(recortes[j][i] != 32){
+                  aux=aux+recortes[j][i];
+              }
+      }
+      res.push_back(aux);
+  }
+
+return res;
+}
+
+
+std::vector<std::string> BeliefUpdaterProcess::getsubs(std::vector<std::string> pairs){
+
+  std::vector<std::string>res;
+  for (int i=0; i<pairs.size();i++){
+     res.push_back(pairs[i].substr(pairs[i].find(":")+1,pairs[i].size()-1));
+  }
+  return res;
+}
+void BeliefUpdaterProcess::message_from_robotCallback(const aerostack_msgs::SocialCommunicationStatement &message) {
+
+  std::cout<<"I get a message from "<<message.sender<<std::endl;
+  if(message.sender != drone_id_namespace){
+    aerostack_msgs::QueryBelief srv;
+    srv.request.query = "object(?x,drone), name(?x,"+message.sender+")"; 
+    query_client.call(srv);
+    aerostack_msgs::QueryBelief::Response response= srv.response;
+    int id;
+    if(response.success==false){
+      droneMsgsROS::GenerateID::Request req;
+      droneMsgsROS::GenerateID::Response res;
+      generate_id_client.call(req, res);
+      if (res.ack)
+      {
+        id = res.id;
+      }
+      
+      aerostack_msgs::AddBelief srv2;
+      std::stringstream s;
+      s << "object(" << id << ", drone), name(" << id << ","<< message.sender <<")";//llamar a generate id
+      srv2.request.belief_expression = s.str();
+      srv2.request.multivalued = false;
+      add_client.call(srv2);
+   }else{
+    auto sub = response.substitutions;
+    std::vector<std::string> pairs = getpairs(sub);
+    std::vector<std::string> subs = getsubs(pairs);
+    id = std::stoi(subs[0]);
+    
+   }
+
+   YAML::Node content = YAML::Load(message.content);
+
+   YAML::Node position;
+   double my_pose[3];
+   if (position=content["POSITION"]) {
+    for(std::size_t k=0;k<3;k++){
+      my_pose[k]=position[k].as<double>();
+
+    }
+    aerostack_msgs::AddBelief::Request req;
+    aerostack_msgs::AddBelief::Response res;
+
+    std::stringstream ss;
+    ss << "position(" << id << ", (" << std::setprecision(2) << my_pose[0] << ", "<< std::setprecision(2) << my_pose[1] << ", " << std::setprecision(2) << my_pose[2] << "))";
+    req.belief_expression = ss.str();
+    req.multivalued = false;
+
+    add_client.call(req, res);
+  }
+}
+}
 
 void BeliefUpdaterProcess::arucoCallback(const droneMsgsROS::obsVector& obs_vector) {
   for(auto obs: obs_vector.obs) {
@@ -122,9 +212,9 @@ void BeliefUpdaterProcess::qrInterpretationCallback(const droneMsgsROS::QRInterp
   }
 }
 
-void BeliefUpdaterProcess::poseCallback(const droneMsgsROS::dronePose& pose) {
+void BeliefUpdaterProcess::poseCallback(const geometry_msgs::PoseStamped& pos) {
   std::string new_flight_state;
-  if(pose.z < 0.1) {
+  if(pos.pose.position.z < 0.1) {
     new_flight_state = "LANDED";
   } else {
     new_flight_state = "FLYING";
@@ -138,7 +228,7 @@ void BeliefUpdaterProcess::poseCallback(const droneMsgsROS::dronePose& pose) {
     }
   }
 
-  Point new_pose(pose.x, pose.y, pose.z);
+  Point new_pose(pos.pose.position.x, pos.pose.position.y, pos.pose.position.z);
   new_pose.roundTo(POSE_MIN_DISTANCE);
   if(current_pose.maxDifference(new_pose) > 0) {
     bool success = sendPose(new_pose);
@@ -151,6 +241,7 @@ void BeliefUpdaterProcess::poseCallback(const droneMsgsROS::dronePose& pose) {
 
 void BeliefUpdaterProcess::batteryCallback(const droneMsgsROS::battery& battery) {
   std::string new_battery_level;
+  std::cout<<battery.batteryPercent << std::endl;
   if(battery.batteryPercent < BATTERY_LOW_THRESHOLD) {
     new_battery_level = "LOW";
   } else if(battery.batteryPercent < BATTERY_MEDIUM_THRESHOLD) {
