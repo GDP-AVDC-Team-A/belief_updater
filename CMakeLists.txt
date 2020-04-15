@@ -38,6 +38,8 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   drone_process
   droneMsgsROS
+  std_msgs
+  aerostack_msgs
 )
 ## ================= Catkin specific configuration =================
 
@@ -45,6 +47,10 @@ catkin_package(
   CATKIN_DEPENDS
   roscpp
   drone_process
+  std_msgs
+  droneMsgsROS
+  aerostack_msgs
+  DEPENDS yaml-cpp
 )
 
 ## ================= Build =================
@@ -67,3 +73,5 @@ add_executable(
 add_dependencies(belief_updater_process_main ${catkin_EXPORTED_TARGETS})
 target_link_libraries(belief_updater_process_main belief_updater_process_lib)
 target_link_libraries(belief_updater_process_main ${catkin_LIBRARIES})
+target_link_libraries(belief_updater_process_main yaml-cpp)
+
