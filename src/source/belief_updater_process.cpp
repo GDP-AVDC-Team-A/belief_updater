@@ -41,14 +41,14 @@ void BeliefUpdaterProcess::ownStart() {
  
 
   aerostack_msgs::QueryBelief srv;
-  srv.request.query = "object(?x,drone), name(?x,self)"; 
+  srv.request.query = "object(?x,drone), name(?x,"+drone_id_namespace+"), self(?x)"; 
   query_client.call(srv);
  
   aerostack_msgs::QueryBelief::Response response= srv.response;
   if(response.success==false){
   	aerostack_msgs::AddBelief srv2;
   	std::stringstream s;
-  	s << "object(" << my_id << ", drone), name(" << my_id << ",self)";//llamar a generate id
+  	s << "object(" << my_id << ", drone), name(" << my_id << ","+drone_id_namespace+"), self(" << my_id << ")";//llamar a generate id
  	srv2.request.belief_expression = s.str();
  	srv2.request.multivalued = false;
  	add_client.call(srv2);
@@ -102,7 +102,6 @@ std::vector<std::string> BeliefUpdaterProcess::getsubs(std::vector<std::string> 
 }
 void BeliefUpdaterProcess::message_from_robotCallback(const aerostack_msgs::SocialCommunicationStatement &message) {
 
-  std::cout<<"I get a message from "<<message.sender<<std::endl;
   if(message.sender != drone_id_namespace){
     aerostack_msgs::QueryBelief srv;
     srv.request.query = "object(?x,drone), name(?x,"+message.sender+")"; 
@@ -144,8 +143,23 @@ void BeliefUpdaterProcess::message_from_robotCallback(const aerostack_msgs::Soci
     aerostack_msgs::AddBelief::Request req;
     aerostack_msgs::AddBelief::Response res;
 
+    double val_x=my_pose[0];
+    val_x=val_x*100;
+    val_x=std::round(val_x);
+    val_x=val_x/100;  
+
+    double val_y=my_pose[1];
+    val_y=val_y*100;
+    val_y=std::round(val_y);
+    val_y=val_y/100;  
+
+    double val_z=my_pose[2];
+    val_z=val_z*100;
+    val_z=std::round(val_z);
+    val_z=val_z/100;  
+
     std::stringstream ss;
-    ss << "position(" << id << ", (" << std::setprecision(2) << my_pose[0] << ", "<< std::setprecision(2) << my_pose[1] << ", " << std::setprecision(2) << my_pose[2] << "))";
+    ss << "position(" << id << ", (" << val_x << ", "<< val_y<< ", " << val_z << "))";
     req.belief_expression = ss.str();
     req.multivalued = false;
 
