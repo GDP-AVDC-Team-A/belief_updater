@@ -157,6 +157,15 @@ void BeliefUpdaterProcess::message_from_robotCallback(const aerostack_msgs::Soci
     val_z=val_z*100;
     val_z=std::round(val_z);
     val_z=val_z/100;  
+    if(val_x==-0){
+      val_x=0;
+    }
+    if(val_y==-0){
+      val_z=0;
+    }
+    if(val_z==-0){
+      val_z=0;
+    }
 
     std::stringstream ss;
     ss << "position(" << id << ", (" << val_x << ", "<< val_y<< ", " << val_z << "))";
@@ -294,6 +303,16 @@ bool BeliefUpdaterProcess::sendPose(Point pose) {
   aerostack_msgs::AddBelief::Request req;
   aerostack_msgs::AddBelief::Response res;
 
+  if(pose.x==-0){
+    pose.x=0;
+  }
+  if(pose.y==-0){
+    pose.y=0;
+  }
+  if(pose.z==-0){
+    pose.z=0;
+  }
+  
   std::stringstream ss;
   ss << "position(" << my_id << ", (" << pose.x << ", " << pose.y << ", " << pose.z << "))";
   req.belief_expression = ss.str();
