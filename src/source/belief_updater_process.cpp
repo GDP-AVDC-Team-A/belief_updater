@@ -15,7 +15,7 @@ void BeliefUpdaterProcess::ownStart() {
   pose_subscriber = n.subscribe(pose_topic, 1, &BeliefUpdaterProcess::poseCallback, this);
   battery_subscriber = n.subscribe(battery_topic, 1, &BeliefUpdaterProcess::batteryCallback, this);
   qr_interpretation_subscriber = n.subscribe(qr_interpretation_topic, 1, &BeliefUpdaterProcess::qrInterpretationCallback,this);
-  message_from_robot_sub =n.subscribe('/' + message_from_robot, 1,
+  message_from_robot_sub =n.subscribe('/' + message_from_robot, 1000,
                             &BeliefUpdaterProcess::message_from_robotCallback, this);
 
   previous_interpretation = "";
@@ -102,8 +102,10 @@ std::vector<std::string> BeliefUpdaterProcess::getsubs(std::vector<std::string> 
 }
 void BeliefUpdaterProcess::message_from_robotCallback(const aerostack_msgs::SocialCommunicationStatement &message) {
 
-  if(message.sender != drone_id_namespace){
+  if(message.sender != drone_id_namespace && message.receiver ==drone_id_namespace){
     aerostack_msgs::QueryBelief srv;
+    std::cout<< "recibi de "<< message.sender<< std::endl;
+
     srv.request.query = "object(?x,drone), name(?x,"+message.sender+")"; 
     query_client.call(srv);
     aerostack_msgs::QueryBelief::Response response= srv.response;
@@ -121,23 +123,25 @@ void BeliefUpdaterProcess::message_from_robotCallback(const aerostack_msgs::Soci
       std::stringstream s;
       s << "object(" << id << ", drone), name(" << id << ","<< message.sender <<")";//llamar a generate id
       srv2.request.belief_expression = s.str();
-      srv2.request.multivalued = false;
+      srv2.request.multivalued = true;
       add_client.call(srv2);
+      aerostack_msgs::AddBelief::Response response= srv2.response;
+      int id;
+  
    }else{
     auto sub = response.substitutions;
     std::vector<std::string> pairs = getpairs(sub);
     std::vector<std::string> subs = getsubs(pairs);
     id = std::stoi(subs[0]);
-    
    }
 
    YAML::Node content = YAML::Load(message.content);
 
-   YAML::Node position;
+   YAML::Node items;
    double my_pose[3];
-   if (position=content["POSITION"]) {
+   if (items=content["POSITION"]) {
     for(std::size_t k=0;k<3;k++){
-      my_pose[k]=position[k].as<double>();
+      my_pose[k]=items[k].as<double>();
 
     }
     aerostack_msgs::AddBelief::Request req;
@@ -157,13 +161,13 @@ void BeliefUpdaterProcess::message_from_robotCallback(const aerostack_msgs::Soci
     val_z=val_z*100;
     val_z=std::round(val_z);
     val_z=val_z/100;  
-    if(val_x==-0){
+    if(val_x>=-0.01 && val_x<=0.01){
       val_x=0;
     }
-    if(val_y==-0){
-      val_z=0;
+    if(val_y>=-0.01 && val_y<=0.01){
+      val_y=0;
     }
-    if(val_z==-0){
+    if(val_z>=-0.01 && val_z<=0.01){
       val_z=0;
     }
 
@@ -173,6 +177,30 @@ void BeliefUpdaterProcess::message_from_robotCallback(const aerostack_msgs::Soci
     req.multivalued = false;
 
     add_client.call(req, res);
+  }else if(content["TEXT"]){
+
+    std::string text=content["TEXT"].as<std::string>();
+    std::cout<<"lei esto"<<text<<std::endl;
+
+    droneMsgsROS::GenerateID::Request req2;
+    droneMsgsROS::GenerateID::Response res2;
+    generate_id_client.call(req2, res2);
+    int id_message;
+    if (res2.ack)
+    {
+      id_message = res2.id;
+    }
+
+    aerostack_msgs::AddBelief::Request req;
+    aerostack_msgs::AddBelief::Response res;
+
+    std::stringstream ss;
+    ss << "object(" << id_message << ", message) , sender(" << id_message<<", " << id << "), text(" << id_message<<", "<< text <<")";
+    req.belief_expression = ss.str();
+    req.multivalued = false;
+
+    add_client.call(req, res);
+
   }
 }
 }

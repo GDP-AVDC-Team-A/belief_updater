@@ -92,6 +92,7 @@ private:
   std::string current_flight_state;
   std::string current_battery_level;
 
+
   bool sendFlightState(std::string flight_state);
   bool sendPose(Point pose);
   bool sendArucoPose(int id, Point pose);
