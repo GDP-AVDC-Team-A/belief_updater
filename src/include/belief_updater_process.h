@@ -34,6 +34,7 @@
 #include <droneMsgsROS/QRInterpretation.h>
 #include "droneMsgsROS/GenerateID.h"
 #include <aerostack_msgs/SocialCommunicationStatement.h>
+#include <aerostack_msgs/SharedRobotPosition.h>
 #include <yaml-cpp/yaml.h>
 #include <vector>
 #include "geometry_msgs/PoseStamped.h"
@@ -63,6 +64,7 @@ private:
   ros::Subscriber battery_subscriber;
   ros::Subscriber qr_interpretation_subscriber;
   ros::Subscriber message_from_robot_sub;
+  ros::Subscriber shared_robot_positions_channel_sub;
 
 
   ros::ServiceClient add_client;
@@ -76,6 +78,7 @@ private:
   std::string battery_topic;
   std::string qr_interpretation_topic;
   std::string message_from_robot;
+  std::string shared_robot_positions_channel_str;
 
   std::string previous_interpretation;
 
@@ -84,6 +87,7 @@ private:
   void batteryCallback(const droneMsgsROS::battery& battery);
   void qrInterpretationCallback(const droneMsgsROS::QRInterpretation& obs_vector);
   void message_from_robotCallback(const aerostack_msgs::SocialCommunicationStatement &message);
+  void sharedRobotPositionCallback(const aerostack_msgs::SharedRobotPosition &message);
 
   std::map<int, Point> aruco_positions;
   std::map<int, int> aruco_times_seen;

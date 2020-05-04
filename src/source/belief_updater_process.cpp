@@ -8,6 +8,8 @@ void BeliefUpdaterProcess::ownSetUp() {
   private_nh.param<std::string>("qr_interpretation_topic", qr_interpretation_topic, "qr_interpretation");
   private_nh.param<std::string>("message_from_robot", message_from_robot,"message_from_robot");
   private_nh.param<std::string>("drone_id_namespace", drone_id_namespace, "drone1");
+  private_nh.param<std::string>("shared_robot_positions_channel_topic", shared_robot_positions_channel_str,
+                                 "shared_robot_positions_channel");
 }
 
 void BeliefUpdaterProcess::ownStart() {
@@ -15,8 +17,11 @@ void BeliefUpdaterProcess::ownStart() {
   pose_subscriber = n.subscribe(pose_topic, 1, &BeliefUpdaterProcess::poseCallback, this);
   battery_subscriber = n.subscribe(battery_topic, 1, &BeliefUpdaterProcess::batteryCallback, this);
   qr_interpretation_subscriber = n.subscribe(qr_interpretation_topic, 1, &BeliefUpdaterProcess::qrInterpretationCallback,this);
-  message_from_robot_sub =n.subscribe('/' + message_from_robot, 1000,
+  message_from_robot_sub =n.subscribe('/' + message_from_robot, 100,
                             &BeliefUpdaterProcess::message_from_robotCallback, this);
+
+  shared_robot_positions_channel_sub =
+      n.subscribe('/' + shared_robot_positions_channel_str, 1000, &BeliefUpdaterProcess::sharedRobotPositionCallback, this);
 
   previous_interpretation = "";
 
@@ -104,7 +109,7 @@ void BeliefUpdaterProcess::message_from_robotCallback(const aerostack_msgs::Soci
 
   if(message.sender != drone_id_namespace && message.receiver ==drone_id_namespace){
     aerostack_msgs::QueryBelief srv;
-    std::cout<< "recibi de "<< message.sender<< std::endl;
+    std::cout<< "recibi mensaje de "<< message.sender<< std::endl;
 
     srv.request.query = "object(?x,drone), name(?x,"+message.sender+")"; 
     query_client.call(srv);
@@ -135,49 +140,9 @@ void BeliefUpdaterProcess::message_from_robotCallback(const aerostack_msgs::Soci
     id = std::stoi(subs[0]);
    }
 
-   YAML::Node content = YAML::Load(message.content);
+  YAML::Node content = YAML::Load(message.content);
 
-   YAML::Node items;
-   double my_pose[3];
-   if (items=content["POSITION"]) {
-    for(std::size_t k=0;k<3;k++){
-      my_pose[k]=items[k].as<double>();
-
-    }
-    aerostack_msgs::AddBelief::Request req;
-    aerostack_msgs::AddBelief::Response res;
-
-    double val_x=my_pose[0];
-    val_x=val_x*100;
-    val_x=std::round(val_x);
-    val_x=val_x/100;  
-
-    double val_y=my_pose[1];
-    val_y=val_y*100;
-    val_y=std::round(val_y);
-    val_y=val_y/100;  
-
-    double val_z=my_pose[2];
-    val_z=val_z*100;
-    val_z=std::round(val_z);
-    val_z=val_z/100;  
-    if(val_x>=-0.01 && val_x<=0.01){
-      val_x=0;
-    }
-    if(val_y>=-0.01 && val_y<=0.01){
-      val_y=0;
-    }
-    if(val_z>=-0.01 && val_z<=0.01){
-      val_z=0;
-    }
-
-    std::stringstream ss;
-    ss << "position(" << id << ", (" << val_x << ", "<< val_y<< ", " << val_z << "))";
-    req.belief_expression = ss.str();
-    req.multivalued = false;
-
-    add_client.call(req, res);
-  }else if(content["TEXT"]){
+  if(content["TEXT"]){
 
     std::string text=content["TEXT"].as<std::string>();
     std::cout<<"lei esto"<<text<<std::endl;
@@ -201,9 +166,89 @@ void BeliefUpdaterProcess::message_from_robotCallback(const aerostack_msgs::Soci
 
     add_client.call(req, res);
 
+
   }
 }
 }
+
+
+void BeliefUpdaterProcess::sharedRobotPositionCallback(
+    const aerostack_msgs::SharedRobotPosition &message)
+{
+
+  if(message.sender != drone_id_namespace){
+    aerostack_msgs::QueryBelief srv;
+    std::cout<< "recibi pose de "<< message.sender<< std::endl;
+
+    srv.request.query = "object(?x,drone), name(?x,"+message.sender+")"; 
+    query_client.call(srv);
+    aerostack_msgs::QueryBelief::Response response= srv.response;
+    int id;
+    if(response.success==false){
+      droneMsgsROS::GenerateID::Request req;
+      droneMsgsROS::GenerateID::Response res;
+      generate_id_client.call(req, res);
+      if (res.ack)
+      {
+        id = res.id;
+      }
+      
+      aerostack_msgs::AddBelief srv2;
+      std::stringstream s;
+      s << "object(" << id << ", drone), name(" << id << ","<< message.sender <<")";
+      srv2.request.belief_expression = s.str();
+      srv2.request.multivalued = true;
+      add_client.call(srv2);
+      aerostack_msgs::AddBelief::Response response= srv2.response;
+      int id;
+  
+   }else{
+    auto sub = response.substitutions;
+    std::vector<std::string> pairs = getpairs(sub);
+    std::vector<std::string> subs = getsubs(pairs);
+    id = std::stoi(subs[0]);
+  }
+
+
+  aerostack_msgs::AddBelief::Request req;
+  aerostack_msgs::AddBelief::Response res;
+
+  double val_x=message.position.x;
+  val_x=val_x*100;
+  val_x=std::round(val_x);
+  val_x=val_x/100;  
+
+  double val_y=message.position.y;
+  val_y=val_y*100;
+  val_y=std::round(val_y);
+  val_y=val_y/100;  
+
+  double val_z=message.position.z;
+  val_z=val_z*100;
+  val_z=std::round(val_z);
+  val_z=val_z/100;  
+  if(val_x>=-0.01 && val_x<=0.01){
+    val_x=0;
+  }
+  if(val_y>=-0.01 && val_y<=0.01){
+    val_y=0;
+  }
+  if(val_z>=-0.01 && val_z<=0.01){
+    val_z=0;
+  }
+
+  std::stringstream ss;
+  ss << "position(" << id << ", (" << val_x << ", "<< val_y<< ", " << val_z << "))";
+  req.belief_expression = ss.str();
+  req.multivalued = false;
+
+  add_client.call(req, res);
+
+    
+  }
+
+  }
+
 
 void BeliefUpdaterProcess::arucoCallback(const droneMsgsROS::obsVector& obs_vector) {
   for(auto obs: obs_vector.obs) {

@@ -7,6 +7,7 @@
   <arg name="battery_topic" default="battery" />
   <arg name="qr_interpretation_topic" default="qr_interpretation" />
   <arg name="message_from_robot"  default="message_from_robot" />
+    <arg name="shared_robot_positions_channel"     default="shared_robot_positions_channel" />
   <group ns="$(arg drone_id_namespace)">
     <node name="belief_updater_process"
           pkg="belief_updater_process"
@@ -33,6 +34,12 @@
       <param name="~drone_id_namespace"     
              value="$(arg drone_id_namespace)"    
              type="str" />
+      <param name="~shared_robot_positions_channel"      
+	     value="$(arg shared_robot_positions_channel)"     
+             type="str" />
+
+
+
     </node>
   </group>
 </launch>
