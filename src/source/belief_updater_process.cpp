@@ -126,7 +126,7 @@ void BeliefUpdaterProcess::message_from_robotCallback(const aerostack_msgs::Soci
       
       aerostack_msgs::AddBelief srv2;
       std::stringstream s;
-      s << "object(" << id << ", drone), name(" << id << ","<< message.sender <<")";//llamar a generate id
+      s << "object(" << id << ", drone), name(" << id << ","<< message.sender <<")";
       srv2.request.belief_expression = s.str();
       srv2.request.multivalued = true;
       add_client.call(srv2);
@@ -145,7 +145,6 @@ void BeliefUpdaterProcess::message_from_robotCallback(const aerostack_msgs::Soci
   if(content["TEXT"]){
 
     std::string text=content["TEXT"].as<std::string>();
-    std::cout<<"lei esto"<<text<<std::endl;
 
     droneMsgsROS::GenerateID::Request req2;
     droneMsgsROS::GenerateID::Response res2;
@@ -171,6 +170,36 @@ void BeliefUpdaterProcess::message_from_robotCallback(const aerostack_msgs::Soci
 }
 }
 
+bool BeliefUpdaterProcess:: collision_detected(geometry_msgs::Point shared_position , geometry_msgs::Point shared_vel 
+  , geometry_msgs::Point own_position , geometry_msgs::Point own_vel){
+
+  int times= (int)TEMPORAL_HORIZON/TIME_STEP;
+
+  for (int i = TIME_STEP; i<=times;i=i+1){
+    std::cout<<"mi vel  es: "<< own_vel.x<<own_vel.y<<own_vel.z<< std::endl;
+    std::cout<<"su vel  es: "<< shared_vel.x<<shared_vel.y<<shared_vel.z<< std::endl;
+    // shared position in 5 secs
+    geometry_msgs::Point next_shared_position;
+     next_shared_position.x = shared_position.x+shared_vel.x*(TIME_STEP*i);
+    next_shared_position.y = shared_position.y+shared_vel.y*(TIME_STEP*i);
+    next_shared_position.z = shared_position.z+shared_vel.z*(TIME_STEP*i);
+    // own position in 5 secs
+    geometry_msgs::Point next_own_position;
+    next_own_position.x = own_position.x+own_vel.x*(TIME_STEP*i);
+    next_own_position.y = own_position.y+own_vel.y*(TIME_STEP*i);
+    next_own_position.z = own_position.z+own_vel.z*(TIME_STEP*i);
+
+
+    double dist = sqrt( pow(next_shared_position.x - next_own_position.x,2.) + 
+      pow(next_shared_position.y - next_own_position.y,2.) + 
+      pow(next_shared_position.z - next_own_position.z,2.));
+    if(dist<=COLLISION_DISTANCE){
+      return true;
+    }
+  }
+  return false;
+
+}
 
 void BeliefUpdaterProcess::sharedRobotPositionCallback(
     const aerostack_msgs::SharedRobotPosition &message)
@@ -178,7 +207,6 @@ void BeliefUpdaterProcess::sharedRobotPositionCallback(
 
   if(message.sender != drone_id_namespace){
     aerostack_msgs::QueryBelief srv;
-    std::cout<< "recibi pose de "<< message.sender<< std::endl;
 
     srv.request.query = "object(?x,drone), name(?x,"+message.sender+")"; 
     query_client.call(srv);
@@ -238,17 +266,81 @@ void BeliefUpdaterProcess::sharedRobotPositionCallback(
   }
 
   std::stringstream ss;
-  ss << "position(" << id << ", (" << val_x << ", "<< val_y<< ", " << val_z << "))";
+  ss << "position(" << id << ", (" <<val_x<< ", "<< val_y<< ", " << val_z << "))";
   req.belief_expression = ss.str();
   req.multivalued = false;
-
   add_client.call(req, res);
 
+ 
+  if( !(last_positions.find(id) == last_positions.end())){
+    //calculate velocity
+    int32_t d_time=abs(int(message.time-last_positions[id].second));
+
+    if(d_time>0.1){
+    double x_now = val_x;
+    double x_previous = last_positions[id].first.x;
+    double d_x= x_now-x_previous; 
+    double vel_x = d_x/(double)d_time;
+
+    double y_now = val_y;
+    double y_previous = last_positions[id].first.y;
+    double d_y= y_now-y_previous; 
+    double vel_y = d_y/(double)d_time;
+
+    double z_now = val_z;
+    double z_previous = last_positions[id].first.z;
+    double d_z= z_now-z_previous; 
+    double vel_z = d_z/(double)d_time;
+
     
-  }
+    geometry_msgs::Point shared_vel;
+    shared_vel.x=vel_x;
+    shared_vel.y=vel_y;
+    shared_vel.z=vel_z;
 
-  }
+    geometry_msgs::Point shared_position;
+    shared_position.x=x_now;
+    shared_position.y=y_now;
+    shared_position.z=z_now;
 
+    geometry_msgs::Point own_position;
+    own_position.x=last_positions[my_id].first.x;
+    own_position.y=last_positions[my_id].first.y;
+    own_position.z=last_positions[my_id].first.z;
+
+    geometry_msgs::Point own_vel=vel;
+
+    //it is verified that there is collision between both vectors
+    if(collision_detected(shared_position , shared_vel , own_position , own_vel)){
+      std::cout<<"collision detected";
+      aerostack_msgs::AddBelief srv_collision;
+      std::stringstream s;
+      s << "collision_course(" << my_id << ", "<< id <<")";
+      srv_collision.request.belief_expression = s.str();
+      srv_collision.request.multivalued = false;
+      add_client.call(srv_collision);
+
+    }
+    geometry_msgs::Point p;
+    p.x=val_x;
+    p.y=val_y;
+    p.z=val_z;
+
+    std::pair <geometry_msgs::Point, int32_t> pair (p, message.time);
+    last_positions[id]=pair;
+  }
+}else{  
+  //update last shared position 
+  geometry_msgs::Point p;
+  p.x=val_x;
+  p.y=val_y;
+  p.z=val_z;
+
+  std::pair <geometry_msgs::Point, int32_t> pair (p, message.time);
+  last_positions[id]=pair;
+  }
+}
+}
 
 void BeliefUpdaterProcess::arucoCallback(const droneMsgsROS::obsVector& obs_vector) {
   for(auto obs: obs_vector.obs) {
@@ -332,8 +424,58 @@ void BeliefUpdaterProcess::poseCallback(const geometry_msgs::PoseStamped& pos) {
     if(success) {
       current_pose = new_pose;
     }
+    //check if its not the first time
+    if( !(last_positions.find(my_id) == last_positions.end())){
+      //calculate velocity
+      int32_t d_time=abs(int(pos.header.stamp.sec-last_positions[my_id].second));
+      if(d_time>0.1){
+
+      double x_now = pos.pose.position.x;
+      double x_previous = last_positions[my_id].first.x;
+      double d_x= x_now-x_previous; 
+      double vel_x = d_x/(double)d_time;
+
+      double y_now = pos.pose.position.y;
+      double y_previous = last_positions[my_id].first.y;
+      double d_y= y_now-y_previous; 
+      double vel_y = d_y/(double)d_time;
+
+      double z_now = pos.pose.position.z;
+      double z_previous = last_positions[my_id].first.z;
+      double d_z= z_now-z_previous; 
+      double vel_z = d_z/(double)d_time;
+
+      vel.x=vel_x;
+      vel.y=vel_y;
+      vel.z=vel_z;
+
+
+      //update last position of the own drone
+      geometry_msgs::Point p;
+      p.x=pos.pose.position.x;
+      p.y=pos.pose.position.y;
+      p.z=pos.pose.position.y;
+      std::pair <geometry_msgs::Point, int32_t> pair (p, pos.header.stamp.sec);
+      last_positions[my_id]=pair;
+
+    }
+
+    }else{  
+    //update last position of the own drone
+    geometry_msgs::Point p;
+    p.x=pos.pose.position.x;
+    p.y=pos.pose.position.y;
+    p.z=pos.pose.position.y;
+    std::pair <geometry_msgs::Point, int32_t> pair (p, pos.header.stamp.sec);
+    last_positions[my_id]=pair;
+
+  }
+
   }
 }
+
+
+
 
 void BeliefUpdaterProcess::batteryCallback(const droneMsgsROS::battery& battery) {
   std::string new_battery_level;

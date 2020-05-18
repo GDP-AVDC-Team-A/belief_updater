@@ -38,6 +38,8 @@
 #include <yaml-cpp/yaml.h>
 #include <vector>
 #include "geometry_msgs/PoseStamped.h"
+#include <cmath>
+#include <stdlib.h> 
 
 
 
@@ -56,6 +58,8 @@ private:
     double maxDifference(Point p);
     void roundTo(double value);
   };
+
+
 
   ros::NodeHandle n;
 
@@ -89,6 +93,9 @@ private:
   void message_from_robotCallback(const aerostack_msgs::SocialCommunicationStatement &message);
   void sharedRobotPositionCallback(const aerostack_msgs::SharedRobotPosition &message);
 
+  std::map<int,std::pair<geometry_msgs::Point, int32_t>> last_positions;
+  geometry_msgs::Point vel;
+
   std::map<int, Point> aruco_positions;
   std::map<int, int> aruco_times_seen;
   std::map<int, bool> aruco_added;
@@ -105,6 +112,8 @@ private:
   bool sendQRInterpretation(std::string message, bool visible);
   std::vector<std::string> getpairs(std::string subs);
   std::vector<std::string> getsubs(std::vector<std::string> pairs);
+  bool collision_detected(geometry_msgs::Point shared_position,
+  geometry_msgs::Point shared_vel, geometry_msgs::Point own_position, geometry_msgs::Point own_vel);
 
 
   const int REQUIRED_MESSAGES = 5;
@@ -112,7 +121,9 @@ private:
   const double POSE_MIN_DISTANCE = 0.1;
   const double BATTERY_LOW_THRESHOLD = 25;
   const double BATTERY_MEDIUM_THRESHOLD = 75;
-
+  const double TIME_STEP=0.1;
+  const double TEMPORAL_HORIZON=5.0;
+  const double COLLISION_DISTANCE=1;
   int my_id;
  
 };
