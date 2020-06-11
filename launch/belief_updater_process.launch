@@ -4,7 +4,7 @@
   <arg name="my_stack_directory" default="$(env AEROSTACK_STACK)" />
   <arg name="aruco_observation_topic" default="arucoObservation" />
   <arg name="pose_topic" default="self_localization/pose" />
-  <arg name="battery_topic" default="battery" />
+  <arg name="battery_topic" default="sensor_measurement/battery_state" />
   <arg name="qr_interpretation_topic" default="qr_interpretation" />
   <arg name="message_from_robot"  default="message_from_robot" />
     <arg name="shared_robot_positions_channel"     default="shared_robot_positions_channel" />

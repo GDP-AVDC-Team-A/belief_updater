@@ -30,7 +30,7 @@
 #include "aerostack_msgs/RemoveBelief.h"
 #include "droneMsgsROS/obsVector.h"
 #include "droneMsgsROS/dronePose.h"
-#include "droneMsgsROS/battery.h"
+#include <sensor_msgs/BatteryState.h>
 #include <droneMsgsROS/QRInterpretation.h>
 #include "droneMsgsROS/GenerateID.h"
 #include <aerostack_msgs/SocialCommunicationStatement.h>
@@ -88,7 +88,7 @@ private:
 
   void arucoCallback(const droneMsgsROS::obsVector& obs);
   void poseCallback(const geometry_msgs::PoseStamped& pose);
-  void batteryCallback(const droneMsgsROS::battery& battery);
+  void batteryCallback(const sensor_msgs::BatteryState& battery);
   void qrInterpretationCallback(const droneMsgsROS::QRInterpretation& obs_vector);
   void message_from_robotCallback(const aerostack_msgs::SocialCommunicationStatement &message);
   void sharedRobotPositionCallback(const aerostack_msgs::SharedRobotPosition &message);
@@ -114,7 +114,7 @@ private:
   std::vector<std::string> getsubs(std::vector<std::string> pairs);
   bool collision_detected(geometry_msgs::Point shared_position,
   geometry_msgs::Point shared_vel, geometry_msgs::Point own_position, geometry_msgs::Point own_vel);
-
+  double get_angle (geometry_msgs::Point shared_vel, geometry_msgs::Point own_vel);
 
   const int REQUIRED_MESSAGES = 5;
   const double ARUCO_MIN_DISTANCE = 0.5;

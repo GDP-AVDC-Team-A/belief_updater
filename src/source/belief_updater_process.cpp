@@ -4,7 +4,7 @@ void BeliefUpdaterProcess::ownSetUp() {
   ros::NodeHandle private_nh("~");
   private_nh.param<std::string>("aruco_abservation_topic", aruco_topic, "arucoObservation");
   private_nh.param<std::string>("pose_topic", pose_topic, "self_localization/pose");
-  private_nh.param<std::string>("battery_topic", battery_topic, "battery");
+  private_nh.param<std::string>("battery_topic", battery_topic, "sensor_measurement/battery_state");
   private_nh.param<std::string>("qr_interpretation_topic", qr_interpretation_topic, "qr_interpretation");
   private_nh.param<std::string>("message_from_robot", message_from_robot,"message_from_robot");
   private_nh.param<std::string>("drone_id_namespace", drone_id_namespace, "drone1");
@@ -169,18 +169,31 @@ void BeliefUpdaterProcess::message_from_robotCallback(const aerostack_msgs::Soci
   }
 }
 }
+double BeliefUpdaterProcess::get_angle(geometry_msgs::Point shared_vel, geometry_msgs::Point own_vel){
+  double x1 = shared_vel.x;
+  double y1 = shared_vel.y;
+  double z1 = shared_vel.z;
 
-bool BeliefUpdaterProcess:: collision_detected(geometry_msgs::Point shared_position , geometry_msgs::Point shared_vel 
+  double x2 = own_vel.x;
+  double y2 = own_vel.y;
+  double z2 = own_vel.z;
+
+  double dot = x1*x2 + y1*y2;
+  double lenSq1 = x1*x1 + y1*y1;
+  double lenSq2 = x2*x2 + y2*y2;
+  double angle = std::acos(dot/std::sqrt(lenSq1 * lenSq2))  * 180.0 / M_PI ;
+  return angle;
+}
+
+bool BeliefUpdaterProcess::collision_detected(geometry_msgs::Point shared_position , geometry_msgs::Point shared_vel 
   , geometry_msgs::Point own_position , geometry_msgs::Point own_vel){
 
   int times= (int)TEMPORAL_HORIZON/TIME_STEP;
 
   for (int i = TIME_STEP; i<=times;i=i+1){
-    std::cout<<"mi vel  es: "<< own_vel.x<<own_vel.y<<own_vel.z<< std::endl;
-    std::cout<<"su vel  es: "<< shared_vel.x<<shared_vel.y<<shared_vel.z<< std::endl;
     // shared position in 5 secs
     geometry_msgs::Point next_shared_position;
-     next_shared_position.x = shared_position.x+shared_vel.x*(TIME_STEP*i);
+    next_shared_position.x = shared_position.x+shared_vel.x*(TIME_STEP*i);
     next_shared_position.y = shared_position.y+shared_vel.y*(TIME_STEP*i);
     next_shared_position.z = shared_position.z+shared_vel.z*(TIME_STEP*i);
     // own position in 5 secs
@@ -312,13 +325,95 @@ void BeliefUpdaterProcess::sharedRobotPositionCallback(
 
     //it is verified that there is collision between both vectors
     if(collision_detected(shared_position , shared_vel , own_position , own_vel)){
-      std::cout<<"collision detected";
-      aerostack_msgs::AddBelief srv_collision;
+      double angle = get_angle(shared_vel, own_vel);
+      std::cout<<"el angulo es: "<< angle << std::endl;
+      if (angle>=160){
+      aerostack_msgs::QueryBelief srv;
+      std::stringstream s;
+      s << "frontal_collision_course(" << my_id << ", "<< id <<")";
+      srv.request.query = s.str();
+      query_client.call(srv);
+      aerostack_msgs::QueryBelief::Response response= srv.response;
+      if(!response.success){
+        std::cout<<"collision detected";
+        aerostack_msgs::AddBelief srv_collision;
+        s.str(std::string());
+        s << "frontal_collision_course(" << my_id << ", "<< id <<")";
+        srv_collision.request.belief_expression = s.str();
+        srv_collision.request.multivalued = false;
+        add_client.call(srv_collision);
+      }
+      aerostack_msgs::RemoveBelief::Request req;
+      aerostack_msgs::RemoveBelief::Response res;
+      s.str(std::string());
+      s << "collision_course(" << my_id << ", "<< id <<")";
+      req.belief_expression = s.str();
+      remove_client.call(req, res);
+
+
+
+      }else{
+      aerostack_msgs::QueryBelief srv;
       std::stringstream s;
       s << "collision_course(" << my_id << ", "<< id <<")";
-      srv_collision.request.belief_expression = s.str();
-      srv_collision.request.multivalued = false;
-      add_client.call(srv_collision);
+      srv.request.query = s.str();
+      query_client.call(srv);
+      aerostack_msgs::QueryBelief::Response response= srv.response;
+      if(!response.success){
+        std::cout<<"collision detected";
+        aerostack_msgs::AddBelief srv_collision;
+        s.str(std::string());
+        s << "collision_course(" << my_id << ", "<< id <<")";
+        srv_collision.request.belief_expression = s.str();
+        srv_collision.request.multivalued = false;
+        add_client.call(srv_collision);
+      }
+      aerostack_msgs::RemoveBelief::Request req;
+      aerostack_msgs::RemoveBelief::Response res;
+
+      s.str(std::string());
+      s << "frontal_collision_course(" << my_id << ", "<< id <<")";
+      req.belief_expression = s.str();
+
+      remove_client.call(req, res);
+
+      }
+  
+
+    }else{
+      aerostack_msgs::QueryBelief srv;
+      std::stringstream s;
+      s << "frontal_collision_course(" << my_id << ", "<< id <<")";
+      srv.request.query = s.str();
+      query_client.call(srv);
+      aerostack_msgs::QueryBelief::Response response1= srv.response;
+      if(response1.success){
+      //completar esto para que borre si no hay colision
+      aerostack_msgs::RemoveBelief::Request req;
+      aerostack_msgs::RemoveBelief::Response res;
+
+      s.str(std::string());
+      s << "frontal_collision_course(" << my_id << ", "<< id <<")";
+      req.belief_expression = s.str();
+
+      remove_client.call(req, res);
+      }
+      s.str(std::string());
+      s << "collision_course(" << my_id << ", "<< id <<")";
+      srv.request.query = s.str();
+      query_client.call(srv);
+      aerostack_msgs::QueryBelief::Response response2= srv.response;
+      if(response2.success){
+      //completar esto para que borre si no hay colision
+      aerostack_msgs::RemoveBelief::Request req;
+      aerostack_msgs::RemoveBelief::Response res;
+
+      s.str(std::string());
+      s << "collision_course(" << my_id << ", "<< id <<")";
+      req.belief_expression = s.str();
+
+      remove_client.call(req, res);
+      }
 
     }
     geometry_msgs::Point p;
@@ -477,12 +572,12 @@ void BeliefUpdaterProcess::poseCallback(const geometry_msgs::PoseStamped& pos) {
 
 
 
-void BeliefUpdaterProcess::batteryCallback(const droneMsgsROS::battery& battery) {
+void BeliefUpdaterProcess::batteryCallback(const  sensor_msgs::BatteryState& battery) {
+    std::cout<<"new battery"<<std::endl;
   std::string new_battery_level;
-  std::cout<<battery.batteryPercent << std::endl;
-  if(battery.batteryPercent < BATTERY_LOW_THRESHOLD) {
+  if(battery.percentage*100 < BATTERY_LOW_THRESHOLD) {
     new_battery_level = "LOW";
-  } else if(battery.batteryPercent < BATTERY_MEDIUM_THRESHOLD) {
+  } else if(battery.percentage*100 < BATTERY_MEDIUM_THRESHOLD) {
     new_battery_level = "MEDIUM";
   } else {
     new_battery_level = "HIGH";
