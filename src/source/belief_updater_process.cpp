@@ -109,7 +109,6 @@ void BeliefUpdaterProcess::message_from_robotCallback(const aerostack_msgs::Soci
 
   if(message.sender != drone_id_namespace && message.receiver ==drone_id_namespace){
     aerostack_msgs::QueryBelief srv;
-    std::cout<< "recibi mensaje de "<< message.sender<< std::endl;
 
     srv.request.query = "object(?x,drone), name(?x,"+message.sender+")"; 
     query_client.call(srv);
@@ -327,7 +326,6 @@ void BeliefUpdaterProcess::sharedRobotPositionCallback(
     //it is verified that there is collision between both vectors
     if(collision_detected(shared_position , shared_vel , own_position , own_vel)){
       double angle = get_angle(shared_vel, own_vel);
-      std::cout<<"el angulo es: "<< angle << std::endl;
       if (angle>=160){
       aerostack_msgs::QueryBelief srv;
       std::stringstream s;
