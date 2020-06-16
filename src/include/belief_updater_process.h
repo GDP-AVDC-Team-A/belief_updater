@@ -124,8 +124,8 @@ private:
   const double TIME_STEP=0.1;
   const double TEMPORAL_HORIZON=5.0;
   const double COLLISION_DISTANCE=1;
+
   int my_id;
- 
 };
 
 

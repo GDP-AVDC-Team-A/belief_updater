@@ -206,8 +206,9 @@ bool BeliefUpdaterProcess::collision_detected(geometry_msgs::Point shared_positi
     double dist = sqrt( pow(next_shared_position.x - next_own_position.x,2.) + 
       pow(next_shared_position.y - next_own_position.y,2.) + 
       pow(next_shared_position.z - next_own_position.z,2.));
-    if(dist<=COLLISION_DISTANCE){
-      return true;
+
+  if(dist<=COLLISION_DISTANCE){
+      return true; 
     }
   }
   return false;
@@ -289,7 +290,7 @@ void BeliefUpdaterProcess::sharedRobotPositionCallback(
     //calculate velocity
     int32_t d_time=abs(int(message.time-last_positions[id].second));
 
-    if(d_time>0.1){
+    if(d_time>0.2){
     double x_now = val_x;
     double x_previous = last_positions[id].first.x;
     double d_x= x_now-x_previous; 
@@ -370,16 +371,11 @@ void BeliefUpdaterProcess::sharedRobotPositionCallback(
       }
       aerostack_msgs::RemoveBelief::Request req;
       aerostack_msgs::RemoveBelief::Response res;
-
       s.str(std::string());
       s << "frontal_collision_course(" << my_id << ", "<< id <<")";
       req.belief_expression = s.str();
-
       remove_client.call(req, res);
-
       }
-  
-
     }else{
       aerostack_msgs::QueryBelief srv;
       std::stringstream s;
@@ -388,14 +384,11 @@ void BeliefUpdaterProcess::sharedRobotPositionCallback(
       query_client.call(srv);
       aerostack_msgs::QueryBelief::Response response1= srv.response;
       if(response1.success){
-      //completar esto para que borre si no hay colision
       aerostack_msgs::RemoveBelief::Request req;
       aerostack_msgs::RemoveBelief::Response res;
-
       s.str(std::string());
       s << "frontal_collision_course(" << my_id << ", "<< id <<")";
       req.belief_expression = s.str();
-
       remove_client.call(req, res);
       }
       s.str(std::string());
@@ -404,17 +397,13 @@ void BeliefUpdaterProcess::sharedRobotPositionCallback(
       query_client.call(srv);
       aerostack_msgs::QueryBelief::Response response2= srv.response;
       if(response2.success){
-      //completar esto para que borre si no hay colision
       aerostack_msgs::RemoveBelief::Request req;
       aerostack_msgs::RemoveBelief::Response res;
-
       s.str(std::string());
       s << "collision_course(" << my_id << ", "<< id <<")";
       req.belief_expression = s.str();
-
       remove_client.call(req, res);
       }
-
     }
     geometry_msgs::Point p;
     p.x=val_x;
