@@ -31,7 +31,6 @@
 #include "droneMsgsROS/obsVector.h"
 #include "droneMsgsROS/dronePose.h"
 #include <sensor_msgs/BatteryState.h>
-#include <droneMsgsROS/QRInterpretation.h>
 #include "droneMsgsROS/GenerateID.h"
 #include <aerostack_msgs/SocialCommunicationStatement.h>
 #include <aerostack_msgs/SharedRobotPosition.h>
@@ -63,10 +62,8 @@ private:
 
   ros::NodeHandle n;
 
-  ros::Subscriber aruco_subscriber;
   ros::Subscriber pose_subscriber;
   ros::Subscriber battery_subscriber;
-  ros::Subscriber qr_interpretation_subscriber;
   ros::Subscriber message_from_robot_sub;
   ros::Subscriber shared_robot_positions_channel_sub;
 
@@ -77,28 +74,20 @@ private:
   ros::ServiceClient generate_id_client;
 
   std::string drone_id_namespace;
-  std::string aruco_topic;
   std::string pose_topic;
   std::string battery_topic;
-  std::string qr_interpretation_topic;
   std::string message_from_robot;
   std::string shared_robot_positions_channel_str;
 
-  std::string previous_interpretation;
 
-  void arucoCallback(const droneMsgsROS::obsVector& obs);
   void poseCallback(const geometry_msgs::PoseStamped& pose);
   void batteryCallback(const sensor_msgs::BatteryState& battery);
-  void qrInterpretationCallback(const droneMsgsROS::QRInterpretation& obs_vector);
   void message_from_robotCallback(const aerostack_msgs::SocialCommunicationStatement &message);
   void sharedRobotPositionCallback(const aerostack_msgs::SharedRobotPosition &message);
 
   std::map<int,std::pair<geometry_msgs::Point, int32_t>> last_positions;
   geometry_msgs::Point vel;
 
-  std::map<int, Point> aruco_positions;
-  std::map<int, int> aruco_times_seen;
-  std::map<int, bool> aruco_added;
   Point current_pose;
   std::string current_flight_state;
   std::string current_battery_level;
@@ -106,18 +95,14 @@ private:
 
   bool sendFlightState(std::string flight_state);
   bool sendPose(Point pose);
-  bool sendArucoPose(int id, Point pose);
-  bool sendArucoVisibility(int id, bool visible);
   bool sendBatteryLevel(std::string level);
-  bool sendQRInterpretation(std::string message, bool visible);
-  std::vector<std::string> getpairs(std::string subs);
-  std::vector<std::string> getsubs(std::vector<std::string> pairs);
+  std::vector<std::string> getPairs(std::string subs);
+  std::vector<std::string> getSubstitutions(std::vector<std::string> pairs);
   bool collision_detected(geometry_msgs::Point shared_position,
   geometry_msgs::Point shared_vel, geometry_msgs::Point own_position, geometry_msgs::Point own_vel);
   double get_angle (geometry_msgs::Point shared_vel, geometry_msgs::Point own_vel);
 
   const int REQUIRED_MESSAGES = 5;
-  const double ARUCO_MIN_DISTANCE = 0.5;
   const double POSE_MIN_DISTANCE = 0.1;
   const double BATTERY_LOW_THRESHOLD = 25;
   const double BATTERY_MEDIUM_THRESHOLD = 75;
