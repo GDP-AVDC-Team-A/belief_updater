@@ -17,8 +17,6 @@ void BeliefUpdaterProcess::ownStart() {
                             &BeliefUpdaterProcess::message_from_robotCallback, this);
   shared_robot_positions_channel_sub =
       n.subscribe('/' + shared_robot_positions_channel_str, 1000, &BeliefUpdaterProcess::sharedRobotPositionCallback, this);
-
-
   add_client = n.serviceClient<aerostack_msgs::AddBelief>("add_belief");
   remove_client = n.serviceClient<aerostack_msgs::RemoveBelief>("remove_belief");
   query_client = n.serviceClient<aerostack_msgs::QueryBelief>("query_belief");
