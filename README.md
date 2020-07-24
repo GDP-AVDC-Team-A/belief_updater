@@ -5,7 +5,7 @@ This process is responsible for updating the belief memory with values obtained 
 - **estimated_pose** ([geometry_msgs/PoseStamped](http://docs.ros.org/melodic/api/geometry_msgs/html/msg/PoseStamped.html))  
 Estimated current pose of the drone.
 
-- **battery** ([droneMsgsROS/battery](http://docs.ros.org/melodic/api/sensor_msgs/html/msg/BatteryState.html))  
+- **battery** ([sensor_msgs/BatteryState](http://docs.ros.org/melodic/api/sensor_msgs/html/msg/BatteryState.html))  
 Current battery percentage.
 
 - **message_from_robot** ([aerostack_msgs/SocialCommunicationStatement](https://bitbucket.org/visionaerialrobotics/aerostack_msgs/src/8d8dda3bb1547b445a2a5f4ca43665f8fcd53a58/msg/SocialCommunicationStatement.msg))  
