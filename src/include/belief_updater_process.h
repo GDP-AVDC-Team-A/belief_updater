@@ -22,8 +22,8 @@
 #ifndef BELIEF_UPDATER_PROCESS_H
 #define BELIEF_UPDATER_PROCESS_H
 
-#include "drone_process.h"
 #include <string.h>
+#include <ros/ros.h>
 #include "droneMsgsROS/Observation3D.h"
 #include "aerostack_msgs/QueryBelief.h"
 #include "aerostack_msgs/AddBelief.h"
@@ -42,7 +42,7 @@
 
 
 
-class BeliefUpdaterProcess: public DroneProcess {
+class BeliefUpdaterProcess{
 public:
   void ownSetUp();
   void ownStart();

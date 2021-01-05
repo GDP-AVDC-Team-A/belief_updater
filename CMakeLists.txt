@@ -36,7 +36,6 @@ set(BELIEF_UPDATER_PROCESS_HEADER_FILES
 
 find_package(catkin REQUIRED COMPONENTS
   roscpp
-  drone_process
   droneMsgsROS
   std_msgs
   aerostack_msgs
@@ -46,7 +45,6 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
   CATKIN_DEPENDS
   roscpp
-  drone_process
   std_msgs
   droneMsgsROS
   aerostack_msgs
